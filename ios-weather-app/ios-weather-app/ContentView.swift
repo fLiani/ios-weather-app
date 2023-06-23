@@ -6,136 +6,176 @@
 //
 
 import SwiftUI
+import Foundation
+import Alamofire
+import CoreLocation
 
-struct ContentView: View {
+class WeatherViewModel: ObservableObject {
+    @Published var responseData: ResponseData?
     
-    @State private var isNight = false
-    
-    let dayArray = ["MON", "TUE", "WED", "THUR", "FRI"]
-    let weather = ["cloud.sun.fill", "cloud.fill", "cloud.fill", "sun.max.fill", "sun.max.fill"]
-    let temperature = [23, 21, 24, 30, 32]
-    
-    var body: some View {
-        ZStack {
-            GradientView(isNight: $isNight)
-            VStack {
-                CityView(cityName: "Lancaster, UK")
+    func fetchWeatherData(loc: String) {
+        AF.request("https://api.weatherapi.com/v1/forecast.json?key=4c276720c55044a2a16215704231506&q=\(loc)&days=1&aqi=no&alerts=no").responseDecodable(of: ResponseData.self) { response in
+            
+            switch response.result {
+            case .success(let responseData):
+                self.responseData = responseData
                 
-                BigWeatherView(weather: "cloud.sun.fill", temperature: 29)
-                                
-                WeekWeatherView(weekDay: dayArray, weekWeather: weather, temperature: temperature)
-                
-                Spacer()
-                
-                Button{
-                    isNight.toggle()
-                } label: {
-                    WeatherButtonView(title: "Change Day Time",
-                                      textColour: .blue,
-                                      backgroundColour: .white)
-                }
-                
-                Spacer()
+            case .failure(let error):
+                print("Error: \(error)")
             }
         }
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
+class LocationManager: NSObject, CLLocationManagerDelegate {
+    private let locationManager = CLLocationManager()
+    
+    override init() {
+        super.init()
+        locationManager.delegate = self
     }
-}
-
-struct WeatherDayView: View {
     
-    var dayOfWeek: String
-    var imageName: String
-    var temperature: Int
-    
-    var body: some View {
-        VStack {
-            Text(dayOfWeek)
-                .font(.system(size: 16, weight: .medium, design: .default))
-                .foregroundColor(.white)
-            Image(systemName: imageName)
-                .renderingMode(.original)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 40)
-            Text("\(temperature)")
-                .font(.system(size: 28, weight: .medium))
-                .foregroundColor(.white)
+    func requestLocation() {
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.requestLocation()
+    }
+        
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if locations.last != nil {
         }
     }
-}
-
-struct GradientView: View {
     
-    @Binding var isNight: Bool
-    
-    var body: some View {
-        LinearGradient(gradient: Gradient(colors: [isNight ? .black : .blue, isNight ? .gray : Color("lightBlue")]), startPoint: .topLeading, endPoint: .bottomTrailing)
-            .ignoresSafeArea(.all, edges: .all)
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        // Handle location retrieval error
+        print("Failed to retrieve location: \(error.localizedDescription)")
     }
 }
 
-struct CityView: View {
+struct ContentView: View {
     
-    var cityName: String
+    @StateObject private var weatherViewModel = WeatherViewModel()
     
-    var body: some View {
-        Text(cityName)
-            .font(.system(size: 32, weight: .medium, design: .default))
-            .foregroundColor(.white)
-            .padding()
-    }
-}
-
-struct BigWeatherView: View {
+        
+    let dayArray = ["MON", "TUE", "WED", "THUR", "FRI"]
+    let weather = ["cloud.sun.fill", "cloud.fill", "cloud.fill", "sun.max.fill", "sun.max.fill"]
+    let temperature = [23, 21, 24, 30, 32]
     
-    var weather: String
-    var temperature: Int
+    @State private var responseData: ResponseData?
     
     var body: some View {
-        VStack(spacing: 10) {
-            Image(systemName: weather)
-                .renderingMode(.original)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 180, height: 180)
-            
-            Text("\(temperature)")
-                .font(.system(size: 70, weight: .medium))
-                .foregroundColor(.white)
+        ZStack {
+            GradientView()
+            VStack {
+                CityView(cityName: weatherViewModel.responseData?.location.name ?? "", country: weatherViewModel.responseData?.location.country ?? "")
+                
+                BigWeatherView(weather: "cloud.sun.fill", temperature: 29)
+                
+                WeekWeatherView(weekDay: dayArray, weekWeather: weather, temperature: temperature)
+                
+                Spacer()
+                        
+            }
         }
-        .padding(.bottom, 40)
+        .onAppear {
+            weatherViewModel.fetchWeatherData(loc: "Stevenage")
+        }
     }
-}
-
-struct WeekWeatherView: View {
     
-    let weekDay: Array<String>
-    let weekWeather: Array<String>
-    let temperature: Array<Int>
+    struct ContentView_Previews: PreviewProvider {
+        static var previews: some View {
+            ContentView()
+        }
+    }
     
-    var body: some View {
-        HStack(spacing: 20) {
-            WeatherDayView(dayOfWeek: weekDay[0],
-                           imageName: weekWeather[0],
-                           temperature: temperature[0])
-            WeatherDayView(dayOfWeek: weekDay[1],
-                           imageName: weekWeather[1],
-                           temperature: temperature[1])
-            WeatherDayView(dayOfWeek: weekDay[2],
-                           imageName: weekWeather[2],
-                           temperature: temperature[2])
-            WeatherDayView(dayOfWeek: weekDay[3],
-                           imageName: weekWeather[3],
-                           temperature: temperature[3])
-            WeatherDayView(dayOfWeek: weekDay[4],
-                           imageName: weekWeather[4],
-                           temperature: temperature[4])
+    struct WeatherDayView: View {
+        
+        var dayOfWeek: String
+        var imageName: String
+        var temperature: Int
+        
+        var body: some View {
+            VStack {
+                Text(dayOfWeek)
+                    .font(.system(size: 16, weight: .medium, design: .default))
+                    .foregroundColor(.white)
+                Image(systemName: imageName)
+                    .renderingMode(.original)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 40, height: 40)
+                Text("\(temperature)")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(.white)
+            }
+        }
+    }
+    
+    struct GradientView: View {
+                
+        var body: some View {
+            LinearGradient(gradient: Gradient(colors: [.blue, Color("lightBlue")]), startPoint: .topLeading, endPoint: .bottomTrailing)
+                .ignoresSafeArea(.all, edges: .all)
+        }
+    }
+    
+    struct CityView: View {
+        
+        var cityName: String
+        var country: String
+        
+        var body: some View {
+            Text("\(cityName), \(country)")
+                .font(.system(size: 32, weight: .medium, design: .default))
+                .foregroundColor(.white)
+                .padding()
+        }
+    }
+    
+    struct BigWeatherView: View {
+        
+        var weather: String
+        var temperature: Int
+        
+        var body: some View {
+            VStack(spacing: 10) {
+                Image(systemName: weather)
+                    .renderingMode(.original)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 180, height: 180)
+                
+                Text("\(temperature)°")
+                    .font(.system(size: 70, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            .padding(.bottom, 40)
+        }
+    }
+    
+    struct WeekWeatherView: View {
+        
+        let weekDay: Array<String>
+        let weekWeather: Array<String>
+        let temperature: Array<Int>
+        
+        var body: some View {
+            HStack(spacing: 20) {
+                WeatherDayView(dayOfWeek: weekDay[0],
+                               imageName: weekWeather[0],
+                               temperature: temperature[0])
+                WeatherDayView(dayOfWeek: weekDay[1],
+                               imageName: weekWeather[1],
+                               temperature: temperature[1])
+                WeatherDayView(dayOfWeek: weekDay[2],
+                               imageName: weekWeather[2],
+                               temperature: temperature[2])
+                WeatherDayView(dayOfWeek: weekDay[3],
+                               imageName: weekWeather[3],
+                               temperature: temperature[3])
+                WeatherDayView(dayOfWeek: weekDay[4],
+                               imageName: weekWeather[4],
+                               temperature: temperature[4])
+            }
         }
     }
 }
