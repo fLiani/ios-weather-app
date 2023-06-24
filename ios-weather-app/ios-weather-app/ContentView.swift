@@ -68,7 +68,7 @@ struct ContentView: View {
             VStack {
                 CityView(cityName: weatherViewModel.responseData?.location.name ?? "", country: weatherViewModel.responseData?.location.country ?? "")
                 
-                BigWeatherView(weather: "cloud.sun.fill", temperature: 29)
+                BigWeatherView(weather: weatherViewModel.responseData?.current.condition.text ?? "", temperature: weatherViewModel.responseData?.current.temp_c ?? 0)
                 
                 WeekWeatherView(weekDay: dayArray, weekWeather: weather, temperature: temperature)
                 
@@ -134,17 +134,70 @@ struct ContentView: View {
     struct BigWeatherView: View {
         
         var weather: String
-        var temperature: Int
+        var temperature: Double
         
         var body: some View {
             VStack(spacing: 10) {
-                Image(systemName: weather)
-                    .renderingMode(.original)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 180, height: 180)
                 
-                Text("\(temperature)°")
+                switch weather {
+                case "Sunny":
+                    Image(systemName:"sun.max.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                case "Partly cloudy":
+                    Image(systemName:"cloud.sun.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                case "Cloudy":
+                    Image(systemName:"cloud.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                case "Overcast":
+                    Image(systemName:"cloud.fill")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                        .foregroundColor(.gray)
+                case "Mist":
+                    Image(systemName:"cloud.fog.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                case "Patchy rain possible":
+                    Image(systemName:"cloud.sun.rain.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                case "Patchy snow possible":
+                    Image(systemName:"snowflake")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                case "Patchy sleet possible":
+                    Image(systemName:"cloud.sleet.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                    
+                default:
+                    Image(systemName: "cloud.fill")
+                        .renderingMode(.original)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 180, height: 180)
+                }
+                
+                Text("\(Int(temperature))°")
                     .font(.system(size: 70, weight: .medium))
                     .foregroundColor(.white)
             }
